@@ -1,112 +1,90 @@
+package Calendario;
+
+import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.concurrent.TimeUnit;
-import java.util.Scanner;
 
-public final class Evento {
-//OVERVIEW: modella un Evento di una Agenda, con data e nome. Modelliamo il dato come immutabile
-//          mi aspetto che un evento sia definito dalla sua data e nome. Con altra data e nome si tratta di un altro evento
-	private final String nome; //definisco gli attributi final perchè non devono essere modificabili. Però non basta...
+
+public class Evento {
+
+	private final String nome;
 	private final Date data;
-
-	public Evento(Date data, String nome) {
-	//MODIFIES: this
-	//EFFECTS: inizializza Evento con data e nome specificati
-	//         se data o nome null oppure nome vuoto, lancia IllegalArgumentException
+	
+	public Evento(Date data , String nome) {
+		
 		if(data == null)
 			throw new IllegalArgumentException("Data nulla");
-
 		if(nome == null)
 			throw new IllegalArgumentException("Nome nullo");
-
 		if(nome == "")
 			throw new IllegalArgumentException("Nome vuoto");
-
+		
 		this.nome = nome;
-		//this.data = data; //se faccio questo, la data passata come parametro sarà ancora modificabile e cambia anche this.data!
-		this.data = (Date)(data.clone()); //invece uso clone per evitare di rendere la classe mutabile
-
-		assert repOk(); //aggiunto alla fine per verificare la RI. eseguire con java -ea <Classe>
+		//this.data = data; 
+		/* Ovviamente non va bene perché sto facendo riferimento ad una classe "Date" quindi non posso far
+		 * puntare this.data ad un oggetto diverso ma comunque posso modificare l'oggetto date
+		*/
+		this.data = (Date)(data.clone()); //uso un clone e la classe non sarà mai mutabile
+		
+		/*Un metodo migliore , a mio avviso sarebbe stato direttamente creare una nuova istanza
+		 * nel costruttore, anche perché clone in questo caso ok funziona ma non è così scontato
+		 * su TUTTI gli oggetti...
+		 * (nel costruttore) this.data = new Date(data.getTime()) , creo una copia , data rimane 
+		 * immutabile e non uso clone.*/
+		
+		assert repOk() : "qualcosa non torna";
 	}
-
+	
 	public String getNome() {
 		return this.nome;
 	}
-
+	
 	public Date getData() {
-	//EFFECTS: restituisce la data dell'Evento
-		//return this.data; //se faccio questo, la data restituita è modificabile e cambia anche this.data!
-		return (Date)(this.data.clone()); //invece uso clone per evitare di rendere la classe mutabile
-	}
-
-	public Evento copiaEvento(int offset) {
-	// EFFECTS: restituisce un nuovo Evento a distanza di offset dal precedente
-		Date newData = new Date(this.data.getTime() + TimeUnit.DAYS.toMillis(offset));
-		return new Evento(newData, this.nome);
+		//return this.data;
+		//stesso discorso di prima , sto ritornando una data modificabile
+		return (Date)(this.data.clone());
 	}
 	
-	private boolean repOk() {
-		if((this.data != null) && (this.nome != null) && (this.nome != "")) //si può anche controllare uno alla volta ritornando false, e true infine se passa tutti i controlli
-			return true;
-
-		return false;
-	}
-	
-	@Override //Uso override per segnalare che sto ridefinendo il metodo. se sbaglio a ridefinire succede un errore di compilazione.
-	public String toString() {
-		//return "Evento: " + this.nome + " in data: " + this.data; //usando + sull'oggetto viene invocato il loro toString, permettendomi di fare questo. tuttavia stampa troppe cose. riduco sotto
-		return "Evento: " + this.nome + " in data: " + this.data.getDate() + "/" + (this.data.getMonth()+1) + "/" + (this.data.getYear()+1900);
-	}
-
+	//SimpleDateFormat mi ritorna un nuovo oggetto di un qualsiasi Date ma correttamente formattato
 	@Override
-	public boolean equals(Object o) {
-		if(o == null) //se o nullo non saranno uguali
+	public String toString() {
+		//this.data.getDate() + "/" + (this.data.getMonth()+1) + "/" + (this.data.getYear()+1900)
+		SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
+		String formattedDate = dateFormat.format(getData());
+		return getNome() + " " + formattedDate;
+	}
+	
+	public Evento copiaEvento(int n) {
+		/* data.getTime() restituisce il valore temporale interno rappresentato dalla data. 
+		 * Questo valore temporale è il numero di millisecondi 
+		 * trascorsi dal 1 gennaio 1970, 00:00:00 UTC (Coordinated Universal Time)
+		 * */
+		Date nuovaData = new Date(this.data.getTime() + n * 24 * 60 * 60 * 1000);
+		//n che moltiplica 24 h , 60 min , 60 sec, 1000 millisec
+		return new Evento(nuovaData, this.nome);
+	}
+	public boolean equals(Object ob) {
+		Evento e;
+
+		if (ob instanceof Evento) {
+			e = (Evento) ob;
+		} else {
 			return false;
+		}
 
-		if(!(o instanceof Evento))
-			return false; //se o non è un Evento non saranno ugali
+		if (this == e) {
+			return true;
+		}
 
-		Evento tmpo = (Evento)o; //altrimenti cast di o a evento
-
-		if(this.data.equals(tmpo.data) && this.nome.equals(tmpo.nome)) //controllo attributi
+		return this.nome.equals(e.nome) && this.data.equals(e.data);
+	}
+	
+	
+	
+	//verifico il corretto inserimento dei dati attraverso una RI che userò nel costruttore
+	private boolean repOk() {
+		if((this.data != null) && (this.nome != null) && (this.nome != "")) 
 			return true;
 
 		return false;
-	}
-
-	public static void main(String[] args) {
-		Scanner s = new Scanner(System.in);
-
-		System.out.println("Inserisci data del primo evento");
-		String[] sdate1 = s.next().split("/");
-		int day1 = Integer.parseInt(sdate1[0]);
-		int month1 = Integer.parseInt(sdate1[1])-1; //mesi vanno da 0
-		int year1 = Integer.parseInt(sdate1[2])-1900; //anni vanno da 0 = 1900
-
-		System.out.println("Inserisci nome del primo evento");
-		String nome1 = s.next();
-
-		Date data1 = new Date(year1, month1, day1);
-		//data1.setDate(2); //se non uso clone nel costruttore questo cambia anche l'evento
-		Evento evento1 = new Evento(data1, nome1);
-		//evento1.getData().setDate(2); //se non uso clone nel costruttore questo cambia anche l'evento
-
-		System.out.println("Inserisci data del secondo evento");
-		String[] sdate2 = s.next().split("/");
-		int day2 = Integer.parseInt(sdate2[0]);
-		int month2 = Integer.parseInt(sdate2[1])-1; //mesi vanno da 0
-		int year2 = Integer.parseInt(sdate2[2])-1900; //anni vanno da 0 = 1900
-
-		System.out.println("Inserisci nome del secondo evento");
-		String nome2 = s.next();
-
-		Date data2 = new Date(year2, month2, day2);
-		Evento evento2 = new Evento(data2, nome2);
-
-		if(evento1.equals(evento2)) //il paragone deve essere fatto con equals
-			System.out.println("I due eventi sono uguali");
-
-		//test della copia
-		Evento promemoria = evento1.copiaEvento(-5);
-		System.out.println(promemoria);
 	}
 }
